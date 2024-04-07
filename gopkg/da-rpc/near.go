@@ -13,7 +13,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type Namespace struct {
