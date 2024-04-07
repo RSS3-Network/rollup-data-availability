@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"encoding"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
@@ -102,7 +103,7 @@ func validateNetwork(network string) error {
 }
 
 func NewConfig(accountN, contractN, keyN, networkN string, ns uint32) (*Config, error) {
-	log.Info("creating NEAR client ", "contract: ", contractN, " network ", "testnet ", " namespace ", ns, " account ", accountN)
+	log.Info("creating NEAR client ", "contract: ", contractN, " network:", "testnet ", " namespace: ", ns, " account: ", accountN)
 
 	account := C.CString(accountN)
 	defer C.free(unsafe.Pointer(account))
@@ -215,11 +216,11 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 	frameRef := FrameRef{}
 	err := frameRef.UnmarshalBinary(frameRefBytes)
 	if err != nil {
-		log.Warn("unable to decode frame reference", "index", txIndex, "err", err)
+		log.Warn("unable to decode frame reference ", "index", txIndex, "err", err)
 		return nil, err
 	}
 
-	log.Info("NEAR frame ref request", "frameRef", frameRef)
+	log.Info("NEAR frame ref request ", "frameRef txId", hex.EncodeToString(frameRef.TxId), "frameRef TxCommitment", hex.EncodeToString(frameRef.TxCommitment))
 
 	txId := C.CBytes(frameRef.TxId)
 	defer C.free(unsafe.Pointer(txId))
@@ -230,11 +231,11 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 	if blob == nil {
 		err := GetDAError()
 		if err != nil {
-			log.Warn("no data returned from near", "namespace", config.Namespace, "height", frameRef.TxId)
+			log.Warn("no data returned from near ", "namespace", config.Namespace, "height", hex.EncodeToString(frameRef.TxId))
 			return nil, err
 		}
 	} else {
-		log.Info("NEAR data retrieved", "namespace", config.Namespace, "height", frameRef.TxId)
+		log.Info("NEAR data retrieved ", "namespace", config.Namespace, "height", hex.EncodeToString(frameRef.TxId))
 	}
 
 	commitment := To32Bytes(unsafe.Pointer(&blob.commitment))
