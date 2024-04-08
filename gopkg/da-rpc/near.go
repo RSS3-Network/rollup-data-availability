@@ -183,16 +183,17 @@ func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 	defer C.free(unsafe.Pointer(txBytes))
 
 	maybeFrameRef := C.submit_batch(config.Client, candidateHexPtr, (*C.uint8_t)(txBytes), C.size_t(len(data)))
+	err := GetDAError()
+	if err != nil {
+		return nil, err
+	}
+
 	log.Info("Submitting to NEAR",
 		"maybeFrameData", maybeFrameRef,
 		"candidate", candidateHex,
 		"namespace", config.Namespace,
 		"txLen", C.size_t(len(data)),
 	)
-	err := GetDAError()
-	if err != nil {
-		return nil, err
-	}
 
 	if maybeFrameRef.len > 1 {
 		// Set the tx data to a frame reference
