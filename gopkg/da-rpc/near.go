@@ -88,20 +88,8 @@ func (f *FrameRef) UnmarshalBinary(ref []byte) error {
 	return nil
 }
 
-func validateNetwork(network string) error {
-	validNetworks := map[string]bool{
-		"Mainnet":  true,
-		"Testnet":  true,
-		"Localnet": true,
-	}
-
-	if !validNetworks[network] {
-		return ErrInvalidNetwork
-	}
-
-	return nil
-}
-
+// Note, networkN value can be either Mainnet, Testnet
+// or loopback address in [ip]:[port] format.
 func NewConfig(accountN, contractN, keyN, networkN string, ns uint32) (*Config, error) {
 	log.Info("creating NEAR client", "account", accountN, "contract", contractN, "network", networkN, "namespace", ns)
 
@@ -114,10 +102,6 @@ func NewConfig(accountN, contractN, keyN, networkN string, ns uint32) (*Config, 
 	contract := C.CString(contractN)
 	defer C.free(unsafe.Pointer(contract))
 
-	err := validateNetwork(networkN)
-	if err != nil {
-		return nil, err
-	}
 	network := C.CString(networkN)
 	defer C.free(unsafe.Pointer(network))
 
@@ -140,6 +124,8 @@ func NewConfig(accountN, contractN, keyN, networkN string, ns uint32) (*Config, 
 	}, nil
 }
 
+// Note, networkN value can be either Mainnet, Testnet
+// or loopback address in [ip]:[port] format.
 func NewConfigFile(keyPathN, contractN, networkN string, ns uint32) (*Config, error) {
 	keyPath := C.CString(keyPathN)
 	defer C.free(unsafe.Pointer(keyPath))
@@ -147,10 +133,6 @@ func NewConfigFile(keyPathN, contractN, networkN string, ns uint32) (*Config, er
 	contract := C.CString(contractN)
 	defer C.free(unsafe.Pointer(contract))
 
-	err := validateNetwork(networkN)
-	if err != nil {
-		return nil, err
-	}
 	network := C.CString(networkN)
 	defer C.free(unsafe.Pointer(network))
 
