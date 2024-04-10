@@ -5,28 +5,13 @@ on:
     branches:
       - main
 
-env:
-  REPOSITORY: "us-docker.pkg.dev/pagoda-solutions-dev/rollup-data-availability"
-
 jobs:
-  git-submodules-update:
-    name: "Build and deploy Rollup Data Availability"
-    runs-on:
-      group: ubuntu-4cpu-16gb
-    permissions:
-      contents: read
-      packages: write        
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Build "da-rpc" Docker image and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          file: ./crates/da-rpc-sys/Dockerfile
-          tags: |
-            ghcr.io/near/rollup-data-availability/da-rpc:${{ github.sha }}
-            ghcr.io/near/rollup-data-availability/da-rpc:latest
-            
+  build:
+    uses: NaturalSelectionLabs/Daedalus/.github/workflows/docker-tpl.yaml@main
+    with:
+      images: rss3/da-rpc
+      context: .
+      dockerfile: ./crates/da-rpc-sys/Dockerfile
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
