@@ -214,11 +214,11 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 	if blob == nil {
 		err := GetDAError()
 		if err != nil {
-			log.Warn("no data returned from near", "namespace", config.Namespace, "height", hex.EncodeToString(frameRef.TxId))
+			log.Warn("no data returned from near", "namespace", config.Namespace, "txId", hex.EncodeToString(frameRef.TxId))
 			return nil, err
 		}
 	} else {
-		log.Info("NEAR data retrieved", "namespace", config.Namespace, "frameRef txId", hex.EncodeToString(frameRef.TxId))
+		log.Info("NEAR data retrieved", "namespace", config.Namespace, "txId", hex.EncodeToString(frameRef.TxId))
 	}
 
 	commitment := To32Bytes(unsafe.Pointer(&blob.commitment))
