@@ -251,8 +251,11 @@ func GetDAError() error {
 	errData := C.get_error()
 
 	if errData != nil {
-		errStr := C.GoString(errData)
-		defer C.free(unsafe.Pointer(errData))
+		errDataCopy := C.CString(C.GoString(errData))
+		C.free(unsafe.Pointer(errData))
+
+		errStr := C.GoString(errDataCopy)
+		C.free(unsafe.Pointer(errDataCopy))
 
 		return fmt.Errorf("NEAR DA client %s", errStr)
 	}
