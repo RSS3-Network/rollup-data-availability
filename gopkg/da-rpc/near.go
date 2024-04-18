@@ -203,7 +203,7 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 		return nil, err
 	}
 
-	log.Info("NEAR frameRef request", "frameRef txId", hex.EncodeToString(frameRef.TxId), "frameRef TxCommitment", hex.EncodeToString(frameRef.TxCommitment))
+	log.Info("NEAR frameRef request", "txId", hex.EncodeToString(frameRef.TxId), "TxCommitment", hex.EncodeToString(frameRef.TxCommitment))
 
 	txId := C.CBytes(frameRef.TxId)
 	defer C.free(unsafe.Pointer(txId))
@@ -214,11 +214,11 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 	if blob == nil {
 		err := GetDAError()
 		if err != nil {
-			log.Warn("no data returned from near", "namespace", config.Namespace, "txId", hex.EncodeToString(frameRef.TxId))
+			log.Warn("no data returned from near", "txId", hex.EncodeToString(frameRef.TxId))
 			return nil, err
 		}
 	} else {
-		log.Info("NEAR data retrieved", "namespace", config.Namespace, "txId", hex.EncodeToString(frameRef.TxId))
+		log.Info("NEAR data retrieved", "txId", hex.EncodeToString(frameRef.TxId))
 	}
 
 	commitment := To32Bytes(unsafe.Pointer(&blob.commitment))
