@@ -180,7 +180,7 @@ func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 	if maybeFrameRef.len > 1 {
 		// Set the tx data to a frame reference
 		frameData := C.GoBytes(unsafe.Pointer(maybeFrameRef.data), C.int(maybeFrameRef.len))
-		log.Debug("NEAR frame data", frameData)
+		log.Debug("NEAR frame data", hex.EncodeToString(frameData))
 		return frameData, nil
 	} else {
 		log.Warn("no frame reference returned from NEAR, falling back to ethereum")
