@@ -259,8 +259,19 @@ func GetDAError() (err error) {
 	if errData != nil {
 		defer C.free(unsafe.Pointer(errData))
 
-		errStr := C.GoString(errData)
+		errStr := safeGoString(errData)
 		return fmt.Errorf("NEAR DA client %s", errStr)
 	}
 	return nil
+}
+
+func safeGoString(errData *C.char) (s string) {
+	defer func() {
+		if r := recover(); r != nil {
+			s = "critical error from get_error"
+		}
+	}()
+
+	s = C.GoString(errData)
+	return s
 }
