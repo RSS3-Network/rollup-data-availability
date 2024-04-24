@@ -167,6 +167,7 @@ func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 	maybeFrameRef := C.submit_batch(config.Client, candidateHexPtr, (*C.uint8_t)(txBytes), C.size_t(len(data)))
 	err := GetDAError()
 	if err != nil {
+		log.Info("GetDAError returns error...", "err", err)
 		return nil, err
 	}
 
@@ -255,21 +256,33 @@ func GetDAError() (err error) {
 	}()
 
 	errData := C.get_error()
-	if errData != nil {
-		defer C.free(unsafe.Pointer(errData))
-
-		return ErrString(errData)
+	if errData == nil {
+		log.Info("errData is nil")
+		return nil
 	}
-	return nil
+
+	if unsafe.Pointer(errData) == nil {
+		log.Info("unsafe.Pointer(errData) is nil")
+		return nil
+	}
+
+	defer C.free(unsafe.Pointer(errData))
+
+	goString, er := safeGoString(errData)
+	if er != nil {
+		return fmt.Errorf("NEAR DA client %v", er)
+	}
+
+	return fmt.Errorf("NEAR DA client %s", goString)
 }
 
-func ErrString(errData *C.char) (e error) {
+func safeGoString(cString *C.char) (string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			e = fmt.Errorf("critical error from get_error")
+			err = fmt.Errorf("panic recovered: %v", r)
 		}
 	}()
+	log.Info("safeGoString...")
 
-	s := C.GoString(errData)
-	return fmt.Errorf("NEAR DA client %s", s)
+	return C.GoString(cString), nil
 }
