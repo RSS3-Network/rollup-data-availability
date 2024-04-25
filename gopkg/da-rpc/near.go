@@ -156,7 +156,12 @@ func NewConfigFile(keyPathN, contractN, networkN string, ns uint32) (*Config, er
 
 // Note, candidateHex has to be "0xfF00000000000000000000000000000000000000" for the
 // data to be submitted in the case of other Rollups. If concerned, use ForceSubmit
-func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
+func (config *Config) Submit(candidateHex string, data []byte) (frameData []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic recovered from Submit: %v", r)
+		}
+	}()
 
 	candidateHexPtr := C.CString(candidateHex)
 	defer C.free(unsafe.Pointer(candidateHexPtr))
@@ -165,8 +170,8 @@ func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 	defer C.free(unsafe.Pointer(txBytes))
 
 	maybeFrameRef := C.submit_batch(config.Client, candidateHexPtr, (*C.uint8_t)(txBytes), C.size_t(len(data)))
-	err := GetDAError()
-	if err != nil {
+
+	if err = GetDAError(); err != nil {
 		return nil, err
 	}
 
@@ -179,13 +184,12 @@ func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 
 	if maybeFrameRef.len > 1 {
 		// Set the tx data to a frame reference
-		frameData := C.GoBytes(unsafe.Pointer(maybeFrameRef.data), C.int(maybeFrameRef.len))
-		log.Debug("NEAR frame data", hex.EncodeToString(frameData))
+		frameData = C.GoBytes(unsafe.Pointer(maybeFrameRef.data), C.int(maybeFrameRef.len))
 		return frameData, nil
-	} else {
-		log.Warn("no frame reference returned from NEAR, falling back to ethereum")
-		return data, nil
 	}
+
+	log.Warn("no frame reference returned from NEAR")
+	return nil, fmt.Errorf("no frame reference returned from NEAR")
 }
 
 // Used by other rollups without candidate semantics, if you know for sure you want to submit the
@@ -249,8 +253,8 @@ func To32Bytes(ptr unsafe.Pointer) []byte {
 
 func GetDAError() (err error) {
 	defer func() {
-		if rErr := recover(); rErr != nil {
-			err = fmt.Errorf("critical error from NEAR DA GetDAError: %v", rErr)
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic recovered from GetDAError: %v", r)
 		}
 	}()
 
@@ -284,7 +288,7 @@ func GetDAError() (err error) {
 func safeGoString(cString *C.char) (s string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic recovered: %v", r)
+			err = fmt.Errorf("panic recovered from safeGoString: %v", r)
 		}
 	}()
 	fmt.Println("safeGoString...")
