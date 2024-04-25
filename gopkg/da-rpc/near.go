@@ -159,7 +159,7 @@ func NewConfigFile(keyPathN, contractN, networkN string, ns uint32) (*Config, er
 func (config *Config) Submit(candidateHex string, data []byte) (frameData []byte, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic recovered from Submit: %v", r)
+			err = fmt.Errorf("panic recovered from Near Submit: %v", r)
 		}
 	}()
 
@@ -199,10 +199,15 @@ func (config *Config) ForceSubmit(data []byte) ([]byte, error) {
 	return config.Submit(candidateHex, data)
 }
 
-func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) {
+func (config *Config) Get(frameRefBytes []byte, txIndex uint32) (data []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic recovered from Near Get: %v", r)
+		}
+	}()
+
 	frameRef := FrameRef{}
-	err := frameRef.UnmarshalBinary(frameRefBytes)
-	if err != nil {
+	if err = frameRef.UnmarshalBinary(frameRefBytes); err != nil {
 		log.Warn("unable to decode frame reference ", "index", txIndex, "err", err)
 		return nil, err
 	}
@@ -216,14 +221,14 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 	defer C.free(unsafe.Pointer(blob))
 
 	if blob == nil {
-		err := GetDAError()
-		if err != nil {
+		if err = GetDAError(); err != nil {
 			log.Warn("no data returned from near", "txId", hex.EncodeToString(frameRef.TxId))
 			return nil, err
 		}
-	} else {
-		log.Info("NEAR data retrieved", "txId", hex.EncodeToString(frameRef.TxId))
+		return nil, errors.New("blob is nil from near")
 	}
+
+	log.Info("NEAR data retrieved", "txId", hex.EncodeToString(frameRef.TxId))
 
 	commitment := To32Bytes(unsafe.Pointer(&blob.commitment))
 
