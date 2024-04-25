@@ -167,7 +167,6 @@ func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 	maybeFrameRef := C.submit_batch(config.Client, candidateHexPtr, (*C.uint8_t)(txBytes), C.size_t(len(data)))
 	err := GetDAError()
 	if err != nil {
-		log.Info("GetDAError returns error...", "err", err)
 		return nil, err
 	}
 
@@ -255,23 +254,29 @@ func GetDAError() (err error) {
 		}
 	}()
 
+	log.Info("get_error")
 	errData := C.get_error()
 	if errData == nil {
 		log.Info("errData is nil")
 		return nil
 	}
 
+	log.Info("check unsafe errData")
 	if unsafe.Pointer(errData) == nil {
 		log.Info("unsafe.Pointer(errData) is nil")
 		return nil
 	}
 
+	log.Info("defer free errData")
 	defer C.free(unsafe.Pointer(errData))
 
+	log.Info("get safeGoString")
 	goString, er := safeGoString(errData)
+	log.Info("check er")
 	if er != nil {
 		return fmt.Errorf("NEAR DA client %v", er)
 	}
+	log.Info("GetDAError returns...")
 
 	return fmt.Errorf("NEAR DA client %s", goString)
 }
