@@ -258,43 +258,12 @@ func GetDAError() (err error) {
 		}
 	}()
 
-	fmt.Println("get_error")
 	errData := C.get_error()
-	if errData == nil {
-		fmt.Println("errData is nil")
+	if errData == nil || unsafe.Pointer(errData) == nil {
 		return nil
 	}
-
-	fmt.Println("check unsafe errData")
-	if unsafe.Pointer(errData) == nil {
-		fmt.Println("unsafe.Pointer(errData) is nil")
-		return nil
-	}
-
-	fmt.Println("defer free errData")
 	defer C.free(unsafe.Pointer(errData))
 
-	fmt.Println("get safeGoString")
-	goString, er := safeGoString(errData)
-	fmt.Println("check er")
-	if er != nil {
-		return fmt.Errorf("NEAR DA client %v", er)
-	}
-	fmt.Println("GetDAError returns...")
-
+	goString := C.GoString(errData)
 	return fmt.Errorf("NEAR DA client %s", goString)
-}
-
-func safeGoString(cString *C.char) (s string, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic recovered from safeGoString: %v", r)
-		}
-	}()
-	fmt.Println("safeGoString...")
-
-	s = C.GoString(cString)
-	fmt.Println("C.GoString")
-	fmt.Println(len(s))
-	return s, nil
 }
