@@ -281,7 +281,7 @@ func GetDAError() (err error) {
 	return fmt.Errorf("NEAR DA client %s", goString)
 }
 
-func safeGoString(cString *C.char) (string, err error) {
+func safeGoString(cString *C.char) (s string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("panic recovered: %v", r)
@@ -289,5 +289,7 @@ func safeGoString(cString *C.char) (string, err error) {
 	}()
 	log.Info("safeGoString...")
 
-	return C.GoString(cString), nil
+	s = C.GoString(cString)
+	log.Info("C.GoString")
+	return s, nil
 }
