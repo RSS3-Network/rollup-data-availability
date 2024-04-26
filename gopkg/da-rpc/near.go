@@ -3,6 +3,7 @@ package near
 /*
 #include "./lib/libnear_da_rpc_sys.h"
 #include <stdlib.h>
+#include <string.h>
 */
 import "C"
 
@@ -199,15 +200,9 @@ func (config *Config) ForceSubmit(data []byte) ([]byte, error) {
 	return config.Submit(candidateHex, data)
 }
 
-func (config *Config) Get(frameRefBytes []byte, txIndex uint32) (data []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic recovered from Near Get: %v", r)
-		}
-	}()
-
+func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) {
 	frameRef := FrameRef{}
-	if err = frameRef.UnmarshalBinary(frameRefBytes); err != nil {
+	if err := frameRef.UnmarshalBinary(frameRefBytes); err != nil {
 		log.Warn("unable to decode frame reference ", "index", txIndex, "err", err)
 		return nil, err
 	}
@@ -221,7 +216,7 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) (data []byte, er
 	defer C.free(unsafe.Pointer(blob))
 
 	if blob == nil {
-		if err = GetDAError(); err != nil {
+		if err := GetDAError(); err != nil {
 			log.Warn("no data returned from near", "txId", hex.EncodeToString(frameRef.TxId))
 			return nil, err
 		}
@@ -263,7 +258,7 @@ func GetDAError() (err error) {
 	}
 
 	len := C.strlen(errData)
-	goString := C.GoStringN(errData, len)
+	goString := C.GoStringN(errData, C.int(len))
 	C.free(unsafe.Pointer(errData))
 
 	return fmt.Errorf("NEAR DA client %v", goString)
