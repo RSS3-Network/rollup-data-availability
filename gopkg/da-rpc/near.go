@@ -157,13 +157,7 @@ func NewConfigFile(keyPathN, contractN, networkN string, ns uint32) (*Config, er
 
 // Note, candidateHex has to be "0xfF00000000000000000000000000000000000000" for the
 // data to be submitted in the case of other Rollups. If concerned, use ForceSubmit
-func (config *Config) Submit(candidateHex string, data []byte) (frameData []byte, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic recovered from Near Submit: %v", r)
-		}
-	}()
-
+func (config *Config) Submit(candidateHex string, data []byte) ([]byte, error) {
 	candidateHexPtr := C.CString(candidateHex)
 	defer C.free(unsafe.Pointer(candidateHexPtr))
 
@@ -172,7 +166,7 @@ func (config *Config) Submit(candidateHex string, data []byte) (frameData []byte
 
 	maybeFrameRef := C.submit_batch(config.Client, candidateHexPtr, (*C.uint8_t)(txBytes), C.size_t(len(data)))
 
-	if err = GetDAError(); err != nil {
+	if err := GetDAError(); err != nil {
 		return nil, err
 	}
 
@@ -185,7 +179,7 @@ func (config *Config) Submit(candidateHex string, data []byte) (frameData []byte
 
 	if maybeFrameRef.len > 1 {
 		// Set the tx data to a frame reference
-		frameData = C.GoBytes(unsafe.Pointer(maybeFrameRef.data), C.int(maybeFrameRef.len))
+		frameData := C.GoBytes(unsafe.Pointer(maybeFrameRef.data), C.int(maybeFrameRef.len))
 		return frameData, nil
 	}
 
@@ -256,10 +250,13 @@ func GetDAError() (err error) {
 	if errData == nil || unsafe.Pointer(errData) == nil {
 		return nil
 	}
+	defer C.free(unsafe.Pointer(errData))
 
-	len := C.strlen(errData)
-	goString := C.GoStringN(errData, C.int(len))
-	C.free(unsafe.Pointer(errData))
+	len := C.int(C.strlen(errData))
+	goBytes := C.GoBytes(unsafe.Pointer(errData), len)
+	log.Info("GetDAError", "errData len", len, "goBytes", hex.EncodeToString(goBytes))
+
+	goString := string(goBytes)
 
 	return fmt.Errorf("NEAR DA client %v", goString)
 }
