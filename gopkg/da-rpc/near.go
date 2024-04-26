@@ -254,9 +254,9 @@ func GetDAError() (err error) {
 
 	len := C.int(C.strlen(errData))
 	goBytes := C.GoBytes(unsafe.Pointer(errData), len)
-	log.Info("GetDAError", "errData len", len, "goBytes", hex.EncodeToString(goBytes))
 
 	goString := string(goBytes)
+	log.Info("GetDAError", "errData len", len, "goString", goString)
 
 	return fmt.Errorf("NEAR DA client %v", goString)
 }
