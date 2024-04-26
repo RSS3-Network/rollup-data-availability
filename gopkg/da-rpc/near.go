@@ -257,18 +257,14 @@ func To32Bytes(ptr unsafe.Pointer) []byte {
 }
 
 func GetDAError() (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("panic recovered from GetDAError: %v", r)
-		}
-	}()
-
 	errData := C.get_error()
 	if errData == nil || unsafe.Pointer(errData) == nil {
 		return nil
 	}
 
-	goString := C.GoString(errData)
+	len := C.strlen(errData)
+	goString := C.GoStringN(errData, len)
 	C.free(unsafe.Pointer(errData))
+
 	return fmt.Errorf("NEAR DA client %v", goString)
 }
