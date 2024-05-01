@@ -48,9 +48,8 @@ pub extern "C" fn get_error() -> *mut c_char {
 
 #[no_mangle]
 pub extern "C" fn clear_error() {
-    if ffi_helpers::error_handling::error_message().is_some() {
-        ffi_helpers::error_handling::clear_last_error();
-    }
+    // Assuming `clear_error_message` is a function that clears the error state
+    ffi_helpers::error_handling::clear_last_error();
 }
 
 /// # Safety
@@ -362,11 +361,20 @@ pub mod test {
         println!("{:?}", err_str);
         assert_eq!("test", err_str);
 
-        let next_error = unsafe { &*get_error() };
-        assert!(!next_error.is_null());
-        unsafe { clear_error(); }
-        let cleared_error = unsafe { &*get_error() };
-        assert!(cleared_error.is_null());
+        // Verify if error persists
+        let error = unsafe { &*get_error() };
+        let err_str = unsafe { CStr::from_ptr(error).to_str().unwrap() };
+        println!("{:?}", err_str);
+        assert_eq!("test", err_str);
+    }
+
+    #[test]
+    fn test_clear_error() {
+        test_error_handling();
+        clear_error();
+
+        let error = get_error() ;
+        assert!(error.is_null(), "Error should be null after clearing");
     }
 
     fn test_get_client() -> (Client, Config) {
