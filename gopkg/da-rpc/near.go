@@ -258,9 +258,8 @@ func GetDAError() (err error) {
 	}
 	defer C.free(unsafe.Pointer(errData))
 
-	len := C.int(C.strlen(errData))
-	goBytes := C.GoBytes(unsafe.Pointer(errData), len)
+	C.clear_error()
 
-	goString := string(goBytes)
-	return fmt.Errorf("NEAR DA client %v", goString)
+	errStr := C.GoString(errData)
+	return fmt.Errorf("NEAR DA client %v", errStr)
 }
