@@ -48,7 +48,6 @@ pub extern "C" fn get_error() -> *mut c_char {
 
 #[no_mangle]
 pub extern "C" fn clear_error() {
-    // Assuming `clear_error_message` is a function that clears the error state
     ffi_helpers::error_handling::clear_last_error();
 }
 
@@ -361,11 +360,9 @@ pub mod test {
         println!("{:?}", err_str);
         assert_eq!("test", err_str);
 
-        // Verify if error persists
-        let error = unsafe { &*get_error() };
-        let err_str = unsafe { CStr::from_ptr(error).to_str().unwrap() };
-        println!("{:?}", err_str);
-        assert_eq!("test", err_str);
+        assert!(!get_error().is_null());
+        clear_error();
+        assert!(get_error().is_null());
     }
 
     #[test]
