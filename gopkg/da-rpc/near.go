@@ -178,7 +178,7 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 		return nil, err
 	}
 
-	log.Info("NEAR frameRef request", "txId", hex.EncodeToString(frameRef.TxId), "TxCommitment", hex.EncodeToString(frameRef.TxCommitment))
+	log.Info("NEAR frameRef request", "txId", hex.EncodeToString(frameRef.TxId))
 
 	txId := C.CBytes(frameRef.TxId)
 	defer C.free(unsafe.Pointer(txId))
