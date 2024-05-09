@@ -12,10 +12,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"reflect"
 	"unsafe"
 
 	"github.com/ethereum/go-ethereum/log"
+	sidecar "github.com/near/rollup-data-availability/gopkg/sidecar"
 )
 
 type Namespace struct {
@@ -29,8 +29,8 @@ type Config struct {
 }
 
 var (
-	ErrInvalidSize    = errors.New("invalid size")
-	ErrInvalidNetwork = errors.New("invalid network")
+	ErrInvalidSize    = errors.New("NEAR DA unmarshal blob: invalid size")
+	ErrInvalidNetwork = errors.New("NEAR DA client relative URL without a base")
 )
 
 // Framer defines a way to encode/decode a FrameRef.
@@ -39,53 +39,30 @@ type Framer interface {
 	encoding.BinaryUnmarshaler
 }
 
-// FrameRef contains the reference to the specific blob on near and
+// BlobRef contains the reference to the specific blob on near and
 // satisfies the Framer interface.
-type FrameRef struct {
-	TxId         []byte
-	TxCommitment []byte
+type BlobRef struct {
+	TxId []byte
 }
 
-var _ Framer = &FrameRef{}
+var _ Framer = &BlobRef{}
 
-// MarshalBinary encodes the FrameRef
-//
-//	----------------------------------------
-//
-// | 32 byte txid  |  32 byte commitment   |
-//
-//	----------------------------------------
-//
-// | <-- txid --> | <-- commitment -->    |
-//
-//	----------------------------------------
-func (f *FrameRef) MarshalBinary() ([]byte, error) {
-	ref := make([]byte, len(f.TxId)+len(f.TxCommitment))
+// MarshalBinary encodes the Ref into a format that can be
+// serialized.
+func (f *BlobRef) MarshalBinary() ([]byte, error) {
+	ref := make([]byte, sidecar.EncodedBlobRefSize)
 
-	copy(ref[:32], f.TxId)
-	copy(ref[32:], f.TxCommitment)
+	copy(ref[:sidecar.EncodedBlobRefSize], f.TxId)
 
 	return ref, nil
 }
 
-// UnmarshalBinary decodes the binary to FrameRef
-// serialization format: height + commitment
-//
-//	----------------------------------------
-//
-// | 32 byte txid  |  32 byte commitment   |
-//
-//	----------------------------------------
-//
-// | <-- txid --> | <-- commitment -->    |
-//
-//	----------------------------------------
-func (f *FrameRef) UnmarshalBinary(ref []byte) error {
-	if len(ref) < 64 {
+func (f *BlobRef) UnmarshalBinary(ref []byte) error {
+	if len(ref) != sidecar.EncodedBlobRefSize {
+		log.Warn("invalid size ", len(ref), " expected ", sidecar.EncodedBlobRefSize)
 		return ErrInvalidSize
 	}
-	f.TxId = ref[:32]
-	f.TxCommitment = ref[32:]
+	f.TxId = ref[:sidecar.EncodedBlobRefSize]
 	return nil
 }
 
@@ -195,9 +172,9 @@ func (config *Config) ForceSubmit(data []byte) ([]byte, error) {
 }
 
 func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) {
-	frameRef := FrameRef{}
+	frameRef := BlobRef{}
 	if err := frameRef.UnmarshalBinary(frameRefBytes); err != nil {
-		log.Warn("unable to decode frame reference ", "index", txIndex, "err", err)
+		log.Warn("unable to decode frame reference", "index", txIndex, "err", err)
 		return nil, err
 	}
 
@@ -217,21 +194,20 @@ func (config *Config) Get(frameRefBytes []byte, txIndex uint32) ([]byte, error) 
 		return nil, errors.New("blob is nil from near")
 	}
 
-	log.Info("NEAR data retrieved", "txId", hex.EncodeToString(frameRef.TxId))
-
-	commitment := To32Bytes(unsafe.Pointer(&blob.commitment))
-
-	if !reflect.DeepEqual(commitment, frameRef.TxCommitment) {
-		return nil, errors.New("NEAR commitments don't match")
-	} else {
-		log.Debug("Blob commitments match!")
-		return ToBytes(blob), nil
-	}
+	return ToBytes(blob), nil
 }
 
 func (config *Config) FreeClient() {
 	C.free_client((*C.Client)(config.Client))
 	config.Client = nil
+}
+
+func NewBlobSafe(data []byte) *C.BlobSafe {
+	blob := C.BlobSafe{
+		data: (*C.uint8_t)(C.CBytes(data)),
+		len:  C.size_t(len(data)),
+	}
+	return &blob
 }
 
 func ToBytes(b *C.BlobSafe) []byte {
@@ -246,6 +222,12 @@ func To32Bytes(ptr unsafe.Pointer) []byte {
 }
 
 func GetDAError() (err error) {
+	defer func() {
+		if rErr := recover(); rErr != nil {
+			err = fmt.Errorf("critical error from NEAR DA GetDAError: %v", rErr)
+		}
+	}()
+
 	errData := C.get_error()
 	if errData == nil || unsafe.Pointer(errData) == nil {
 		return nil
@@ -255,4 +237,10 @@ func GetDAError() (err error) {
 
 	errStr := C.GoString(errData)
 	return fmt.Errorf("NEAR DA client %v", errStr)
+}
+
+func TestSetError(msg string) {
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+	C.set_error(cmsg)
 }

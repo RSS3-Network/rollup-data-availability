@@ -5,13 +5,74 @@ on:
     branches:
       - main
 
+env:
+  REPOSITORY: "us-docker.pkg.dev/pagoda-solutions-dev/rollup-data-availability"
+
 jobs:
-  build:
-    uses: NaturalSelectionLabs/Daedalus/.github/workflows/docker-tpl.yaml@main
-    with:
-      images: rss3/da-rpc
-      context: .
-      dockerfile: ./crates/da-rpc-sys/Dockerfile
-    secrets:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  git-submodules-update:
+    name: "Build and deploy Rollup Data Availability"
+    runs-on:
+      group: ubuntu-4cpu-16gb
+    permissions:
+      contents: read
+      packages: write        
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build "da-rpc" Docker image and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          file: ./crates/da-rpc-sys/Dockerfile
+          tags: |
+            ghcr.io/near/rollup-data-availability/da-rpc:${{ github.sha }}
+            ghcr.io/near/rollup-data-availability/da-rpc:latest
+
+      - name: Build "sidecar" Docker image and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          file: ./bin/http-api/Dockerfile
+          tags: |
+            ghcr.io/near/rollup-data-availability/http-api:${{ github.sha }}
+            ghcr.io/near/rollup-data-availability/http-api:latest
+
+  changelog:
+    name: Generate changelog
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.git-cliff.outputs.content }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate a changelog
+        uses: orhun/git-cliff-action@v3
+        id: git-cliff
+        with:
+          config: cliff.toml
+          args: -vv --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      # use release body in the same job
+      - name: Upload the binary releases
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: binary_release.zip
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          body: ${{ steps.git-cliff.outputs.content }}

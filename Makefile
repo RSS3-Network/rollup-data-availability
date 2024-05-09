@@ -1,5 +1,5 @@
 TAG_PREFIX := rss3/rollup-data-availability
-IMAGE_TAG := 0.1.0
+IMAGE_TAG := 0.2.0
 
 format:
 	taplo format
