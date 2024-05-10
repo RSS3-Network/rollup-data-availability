@@ -15,3 +15,12 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  build-sidecar:
+    uses: NaturalSelectionLabs/Daedalus/.github/workflows/docker-tpl.yaml@main
+    with:
+      images: rss3/da-http-api
+      context: .
+      dockerfile: ./bin/http-api/Dockerfile
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
