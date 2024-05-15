@@ -5,6 +5,7 @@ use da_rpc::CryptoHash;
 use da_rpc::DataAvailability;
 pub use da_rpc::Namespace;
 pub use da_rpc::{Blob, BlobRef};
+pub use near_da_primitives::Mode;
 
 use ffi_helpers::error_handling::update_last_error;
 use ffi_helpers::null_pointer_check;
@@ -119,7 +120,7 @@ unsafe fn init_client<F: FnOnce() -> config::KeyType>(
                 contract,
                 network,
                 namespace,
-                mode: Default::default(), // TODO: for now we don't expose mode to the client
+                mode: Mode::Pessimistic, // TODO: for now we don't expose mode to the client
             };
 
             Box::into_raw(Box::new(Client::new(&config)))
@@ -366,7 +367,7 @@ pub mod test {
             contract: account.to_string(),
             network: Network::Testnet,
             namespace: None,
-            mode: Default::default(),
+            mode: Mode::Pessimistic,
         };
         let client = Client::new(&config);
         (client, config)

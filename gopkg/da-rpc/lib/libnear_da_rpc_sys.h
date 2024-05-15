@@ -5,7 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#define VERSION 3
+#define VERSION 4
 
 typedef struct Client Client;
 
@@ -21,19 +21,14 @@ typedef struct RustSafeArray {
 
 char *get_error(void);
 
+/**
+ * # Safety
+ * We check if the pointers are null
+ * This is only used in a test
+ */
+void set_error(const char *err);
+
 void clear_error(void);
-
-/**
- * # Safety
- * null check the ptr
- */
-void set_error(char *err);
-
-/**
- * # Safety
- * we check if the pointer is null before attempting to free it
- */
-void free_error(char *error);
 
 /**
  * # Safety
@@ -66,7 +61,7 @@ void free_client(struct Client *client);
  * # Safety
  * We check if the slices are null
  */
-char *submit(const struct Client *client, const struct BlobSafe *blobs, size_t len);
+char *submit(const struct Client *client, const struct BlobSafe *blob);
 
 /**
  * # Safety

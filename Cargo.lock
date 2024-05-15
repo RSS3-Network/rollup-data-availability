@@ -3004,6 +3004,7 @@ dependencies = [
  "ffi-support",
  "ffi_helpers",
  "libc",
+ "near-da-primitives",
  "near-da-rpc",
  "once_cell",
  "openssl",
