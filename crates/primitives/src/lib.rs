@@ -52,7 +52,7 @@ pub struct Blob {
 }
 
 impl Blob {
-    pub fn new_v0(data: Data) -> Self {
+    pub fn new(data: Data) -> Self {
         Self { data }
     }
 }
@@ -118,6 +118,34 @@ pub struct SubmitRequest {
     pub namespace: Option<Namespace>,
     #[serde_as(as = "serde_with::hex::Hex")]
     pub data: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Mode {
+    /// Wait for
+    /// - Inclusion in the block, but not finalized
+    Optimistic,
+    /// Wait for
+    /// - Transaction execution, but additional receipts/refunds were not included
+    Standard,
+    /// Wait for
+    /// - Inclusion in the block
+    /// - Execution of the blob (even though theres no execution)
+    /// - All other shards execute
+    #[default]
+    Pessimistic,
+}
+
+impl From<&str> for Mode {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "optimistic" => Mode::Optimistic,
+            "standard" => Mode::Standard,
+            "pessimistic" => Mode::Pessimistic,
+            _ => Mode::Pessimistic,
+        }
+    }
 }
 
 #[cfg(test)]
