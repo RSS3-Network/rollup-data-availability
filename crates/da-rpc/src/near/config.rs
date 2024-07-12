@@ -57,7 +57,7 @@ impl<'de> Deserialize<'de> for Network {
 
 impl Network {
     pub fn to_endpoint(&self) -> String {
-        const MAINNET_RPC_ENDPOINT: &str = "https://rpc.mainnet.near.org";
+        const MAINNET_RPC_ENDPOINT: &str = "https://rpc.mainnet.pagoda.co";
         const TESTNET_RPC_ENDPOINT: &str = "https://rpc.testnet.near.org";
         match self {
             Self::Mainnet => MAINNET_RPC_ENDPOINT.into(),
